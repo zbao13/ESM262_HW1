@@ -1,0 +1,120 @@
+#Zhiping BaO
+#ESM 262
+#HW#1
+#Data Cleaninng
+library(tidyverse)
+?read.delim
+#read.delim(file, header = TRUE, sep = "\t", quote = "\"",
+#dec = ".", fill = TRUE, comment.char = "", ...)
+
+gaz_raw <- read.delim("CA_Features.txt", header = TRUE, sep = "|")
+
+?tibble
+library(tibble)
+gaz <- as_tibble(gaz_raw)
+gaz_simp <- gaz[,c(1,2,3,4,6,10,11,14,15,16,19,20)]
+is.na(gaz_simp) <- gaz_simp==''
+CA_gaz <- gaz_simp[which(gaz_simp$STATE_ALPHA=='CA'),]
+CA_complete_gaz <- CA_gaz[!CA_gaz$PRIM_LAT_DEC=='NA'& !CA_gaz$PRIM_LONG_DEC=='NA',]
+library(readr )
+?write_csv
+write_delim(CA_complete_gaz,'CA_complete_gaz',delim = "|")
+
+#Analyze
+#1
+summary(CA_complete_gaz$FEATURE_NAME)
+#Church of Christ = 228
+#2
+summary(CA_complete_gaz$FEATURE_CLASS)
+#Isthmus = 1 and Sea = 1
+#3
+county <- group_by(CA_complete_gaz, COUNTY_NAME)
+county_center <- summarize(county, count=n(), lat = mean(PRIM_LAT_DEC, na.rm = T), long = mean(PRIM_LONG_DEC, na.rm = T))
+#4
+class_index <- tribble(
+  ~FEATURE_CLASS, ~index,
+  "Airport", "man_made",
+  "Arch", "natural",
+  "Area","natural",
+  "Arroyo","natural",
+  "Bar","natural",
+  "Basin","natural",
+  "Bay","natural",
+  "Beach","natural",
+  "Bench","natural",
+  "Bend","natural",
+  "Bridge","man_made",
+  "Building","man_made",
+  "Canal","man_made",
+  "Cape","natural",
+  "Cave","natural",
+  "Cemetery","man_made",
+  "Census","man_made",
+  "Channel","natural",
+  "Church","man_made",
+  "Civil","man_made",
+  "Cliff","natural",
+  "Crater","natural",
+  "Crossing","man_made",
+  "Dam","man_made",
+  "Falls","natural",
+  "Flat","natural",
+  "Forest","natural",
+  "Gap","natural",
+  "Glacier","natural",
+  "Gut","natural",
+  "Harbor","man_made",
+  "Hospital","man_made",
+  "Island","natural",
+  "Isthmus","natural",
+  "Lake","natural",
+  "Lava","natural",
+  "Levee","man_made",
+  "Locale","man_made",
+  "Military","man_made",
+  "Mine","man_made",
+  "Oilfield","man_made",
+  "Park","man_made",
+  "Pillar","natural",
+  "Plain","natural",
+  "Populated Place","man_made",
+  "Post Office","man_made",
+  "Range","natural",
+  "Rapids","natural",
+  "Reserve","man_made",
+  "Reservoir","man_made",
+  "Ridge","natural",
+  "School","man_made",
+  "Sea","natural",
+  "Slope","natural",
+  "Spring","natural",
+  "Stream","natural",
+  "Summit","natural",
+  "Swamp","natural",
+  "Tower","man_made",
+  "Trail","man_made",
+  "Tunnel","man_made",
+  "Unknown","man_made",
+  "Valley","natural",
+  "Well","man_made",
+  "Woods","natural"
+)
+library(stringr)
+library(plyr)
+man_made_natural <- inner_join(class_index,CA_complete_gaz) %>%
+  group_by(COUNTY_NAME)
+man_made_natural_1 <- man_made_natural[,c(6,1:5,7:12)]
+man_made_natural_1 <- man_made_natural_1[order(man_made_natural_1$COUNTY_NAME), ]
+fraction <- count(man_made_natural_1, c("COUNTY_NAME","index"))
+?spread
+fraction1 <- spread(fraction, index, freq, fill = NA)
+?fill
+fraction1 <- complete(fraction1)
+library(dplyr)
+?mutate
+fraction1 <- fraction1 %>% mutate(total = natural + man_made) %>%
+  mutate(man_made_fraction = man_made/total) %>%
+  mutate(natural_fraction = natural/total)
+is.na(fraction1) <- fraction1==''
+
+install.packages("rmarkdown")
